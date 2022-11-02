@@ -365,7 +365,10 @@ class Tensor(Value):
 
     def __pow__(self, other):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if isinstance(other, Tensor):
+            return needle.ops.PowerScalar(int(other.cached_data))(self)
+        else:
+            return needle.ops.PowerScalar(other)(self)
         ### END YOUR SOLUTION
 
     def __sub__(self, other):
@@ -422,9 +425,23 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    # BEGIN YOUR SOLUTION
+    for i in reverse_topo_order:
+        vi = sum_node_list(node_to_output_grads_list[i])
+        i.grad = vi
+
+        if i. op is None:
+            continue
+
+        grads = i.op.gradient_as_tuple(vi, i)
+        for j in range(len(i.inputs)):
+            k = i.inputs[j]
+            vki = grads[j]
+            if k not in node_to_output_grads_list:
+                node_to_output_grads_list[k] = [vki]
+            else:
+                node_to_output_grads_list[k].append(vki)
+    # END YOUR SOLUTION
 
 
 def find_topo_sort(node_list: List[Value]) -> List[Value]:
@@ -435,16 +452,26 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     after all its predecessors are traversed due to post-order DFS, we get a topological
     sort.
     """
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    # BEGIN YOUR SOLUTION
+    topo_order = []
+    for n in node_list:
+        topo_sort_dfs(n, [], topo_order)
+    return topo_order
+    # END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    # BEGIN YOUR SOLUTION
+    if node in topo_order:
+        return
+    for n in node.inputs:
+        if n not in topo_order:
+            topo_sort_dfs(n, visited, topo_order)
+
+    topo_order.append(node)
+
+    # END YOUR SOLUTION
 
 
 ##############################
