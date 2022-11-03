@@ -258,7 +258,6 @@ class BroadcastTo(TensorOp):
                     broad_axes.remove(j)
                     break
 
-
         grad = out_grad.sum(tuple(broad_axes)).reshape(input_shape)
 
         return grad
@@ -414,12 +413,55 @@ class LogSumExp(TensorOp):
 
     def compute(self, Z):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+
+        max_z = array_api.max(Z, axis=self.axes)
+                
+
+        if self.axes is not None:
+            reshape_size = [1]*len(Z.shape)
+            for i in range(len(Z.shape)):
+                if i not in self.axes:
+                    reshape_size[i] = Z.shape[i]
+            resize_max_z = max_z.reshape(reshape_size)
+            new_z = Z-array_api.broadcast_to(resize_max_z, Z.shape)
+        else:
+            new_z = Z-array_api.broadcast_to(max_z, Z.shape)
+
+        return array_api.log(array_api.sum(array_api.exp(new_z), axis=self.axes))+max_z
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        data = node.inputs[0].realize_cached_data()
+
+        max_z = array_api.max(data, axis=self.axes)
+        
+
+        if self.axes is not None:
+            reshape_size = [1]*len(data.shape)
+            for i in range(len(data.shape)):
+                if i not in self.axes:
+                    reshape_size[i] = data.shape[i]
+            resize_max_z = max_z.reshape(reshape_size)
+            max_z = array_api.broadcast_to(resize_max_z, data.shape)
+
+        exps = array_api.exp(data-max_z)
+        
+        exps_down = array_api.sum(exps, axis=self.axes)
+        if self.axes is not None:
+            reshape_size = [1]*len(data.shape)
+            for i in range(len(data.shape)):
+                if i not in self.axes:
+                    reshape_size[i] = data.shape[i]
+            resize_exps_down = exps_down.reshape(reshape_size)
+            exps_down = array_api.broadcast_to(resize_exps_down, data.shape)
+            resize_out_grad = out_grad.reshape(reshape_size)
+            out_grad = resize_out_grad.broadcast_to(data.shape)
+
+        res = Tensor(array_api.multiply(
+            out_grad.realize_cached_data(), exps/exps_down))
+        
+        return res
         # END YOUR SOLUTION
 
 

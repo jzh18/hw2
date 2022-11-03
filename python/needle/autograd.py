@@ -366,7 +366,7 @@ class Tensor(Value):
     def __pow__(self, other):
         ### BEGIN YOUR SOLUTION
         if isinstance(other, Tensor):
-            return needle.ops.PowerScalar(int(other.cached_data))(self)
+            return needle.ops.PowerScalar(other.cached_data)(self)
         else:
             return needle.ops.PowerScalar(other)(self)
         ### END YOUR SOLUTION

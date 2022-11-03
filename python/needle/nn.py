@@ -99,9 +99,9 @@ class Linear(Module):
         a = ops.matmul(X, self.weight)  # (batch_size,out_features)
         if self.bias == None:
             return a
-        
-        broadcast_size=[i for i in x_shape]
-        broadcast_size[-1]=self.out_features
+
+        broadcast_size = [i for i in x_shape]
+        broadcast_size[-1] = self.out_features
         b = ops.broadcast_to(self.bias, shape=tuple(broadcast_size))
         return a+b
         # END YOUR SOLUTION
@@ -117,7 +117,7 @@ class Flatten(Module):
 class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return ops.relu(x)
         # END YOUR SOLUTION
 
 
@@ -128,14 +128,25 @@ class Sequential(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        for m in self.modules:
+            x = m(x)
+        return x
         # END YOUR SOLUTION
 
 
 class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        num_classes = logits.shape[1]
+        onehot = init.one_hot(num_classes, y)
+
+        # might be overflow
+        z_y = ops.multiply(onehot, ops.exp(logits))
+        exps_up = ops.log(ops.summation(z_y, axes=(1)))
+
+        exps_down = ops.logsumexp(logits, axes=(1,))
+
+        return ops.summation(exps_down-exps_up)/logits.shape[0]
         # END YOUR SOLUTION
 
 
@@ -161,12 +172,27 @@ class LayerNorm1d(Module):
         self.dim = dim
         self.eps = eps
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.weight = init.ones(dim)
+        self.bias = init.zeros(dim)
         # END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        batch_size, in_features = x.shape  # (batch_size, in_features)
+        mean = (ops.summation(x, axes=(1,)) /
+                in_features).reshape((batch_size, 1))
+        broadcast_mean = ops.broadcast_to(mean, (batch_size, in_features))
+        var = (ops.summation(ops.power_scalar(
+            x-broadcast_mean, 2), axes=(1,))/in_features).reshape((batch_size, 1))
+        broadcast_var = ops.broadcast_to(var, (batch_size, in_features))
+        new_x = ops.divide((x-broadcast_mean),
+                           ops.power_scalar((broadcast_var+self.eps), 0.5))  # (batch_size, in_features)
+
+        broadcast_weight = ops.broadcast_to(
+            self.weight, (batch_size, in_features))
+        broadcast_bias = ops.broadcast_to(self.bias, (batch_size, in_features))
+        return ops.multiply(new_x, broadcast_weight)+broadcast_bias
+
         # END YOUR SOLUTION
 
 
