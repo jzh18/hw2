@@ -110,7 +110,12 @@ class Linear(Module):
 class Flatten(Module):
     def forward(self, X):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        shape = X.shape
+        batch_size = shape[0]
+        flatten_len = 1
+        for i in shape[1:]:
+            flatten_len *= i
+        return X.reshape((batch_size, flatten_len))
         # END YOUR SOLUTION
 
 
@@ -149,6 +154,8 @@ class SoftmaxLoss(Module):
         return ops.summation(exps_down-exps_up)/logits.shape[0]
         # END YOUR SOLUTION
 
+# https://www.pinecone.io/learn/batch-layer-normalization/
+
 
 class BatchNorm1d(Module):
     def __init__(self, dim, eps=1e-5, momentum=0.1, device=None, dtype="float32"):
@@ -157,12 +164,38 @@ class BatchNorm1d(Module):
         self.eps = eps
         self.momentum = momentum
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.weight = init.ones(dim)
+        self.bias = init.zeros(dim)
+        self.running_mean = init.zeros(dim)
+        self.running_var = init.ones(dim)
         # END YOUR SOLUTION
 
+    # todo: maybe need to distinguish training and testing
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        batch_size, in_features = x.shape
+
+        new_running_mean = ops.summation(x, axes=(0,))/batch_size
+        self.running_mean = (1-self.momentum)*self.running_mean + \
+            self.momentum*new_running_mean
+        mean = new_running_mean.reshape((1, in_features))
+        broadcast_mean = ops.broadcast_to(mean, (batch_size, in_features))
+
+        new_running_var = (ops.summation(ops.power_scalar(
+            x-broadcast_mean, 2), axes=(0,))/batch_size)
+        self.running_var = (1-self.momentum)*self.running_var + \
+            self.momentum*new_running_var
+        var = new_running_var.reshape((1, in_features))
+        broadcast_var = ops.broadcast_to(var, (batch_size, in_features))
+
+        new_x = ops.divide((x-broadcast_mean),
+                           ops.power_scalar((broadcast_var+self.eps), 0.5))  # (batch_size, in_features)
+        broadcast_weight = ops.broadcast_to(
+            self.weight, (batch_size, in_features))
+        broadcast_bias = ops.broadcast_to(self.bias, (batch_size, in_features))
+
+        return ops.multiply(new_x, broadcast_weight)+broadcast_bias
+
         # END YOUR SOLUTION
 
 
@@ -203,7 +236,15 @@ class Dropout(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        shape = x.shape
+        len = 1
+        for i in shape:
+            len *= i
+        if self.training:
+            zeros = init.randb(len, p=(1-self.p)).reshape(shape)
+            return ops.multiply(zeros, x)/(1-self.p)
+        else:
+            return x
         # END YOUR SOLUTION
 
 
@@ -214,5 +255,5 @@ class Residual(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return self.fn(x)+x
         # END YOUR SOLUTION
