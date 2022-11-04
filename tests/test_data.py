@@ -161,6 +161,8 @@ def test_mnist_dataset():
                                                 "data/train-labels-idx1-ubyte.gz")
     assert len(mnist_train_dataset) == 60000
 
+    print(mnist_train_dataset[1][0])
+
     sample_norms = np.array([np.linalg.norm(mnist_train_dataset[idx][0]) for idx in [1,42,1000,2000,3000,4000,5000,5005]])
     compare_against = np.array([10.188792, 6.261355, 8.966858, 9.4346485, 9.086626, 9.214664, 10.208544, 10.649756])
     sample_labels = np.array([mnist_train_dataset[idx][1] for idx in [1,42,1000,2000,3000,4000,5000,5005]])
