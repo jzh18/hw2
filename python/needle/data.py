@@ -179,13 +179,41 @@ class DataLoader:
 
     def __iter__(self):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if self.shuffle:
+            all_indices = np.arange(len(self.dataset))
+            np.random.shuffle(all_indices)
+            self.ordering = np.array_split(all_indices, range(
+                self.batch_size, len(self.dataset), self.batch_size))
+            self.ordering
+        self.n = len(self.ordering)
+        self.i = 0
         # END YOUR SOLUTION
         return self
 
     def __next__(self):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if self.i >= self.n:
+            raise StopIteration
+        indices = self.ordering[self.i]
+        self.i += 1
+        
+        all_res=[]
+        for i in indices:
+            data = self.dataset[i]
+            for j,v in enumerate(data):
+                if j+1>len(all_res):
+                    all_res.append(list())
+                all_res[j].append(v)
+        
+        results=[]
+        for v in all_res:
+            t=Tensor(v)
+            results.append(t)
+        return results
+                
+        
+        
+        
         # END YOUR SOLUTION
 
 
