@@ -8,7 +8,7 @@ sys.path.append("./apps")
 from mlp_resnet import *
 
 import mugrade
-import torch
+
 """Deterministically generate a matrix"""
 def get_tensor(*shape, entropy=1):
     np.random.seed(np.prod(shape) * len(shape) * entropy)
@@ -163,101 +163,22 @@ def learn_model_1d(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs
     m = X.shape[0]
     batch = 32
 
-    # class Model(torch.nn.Module):
-    #     def __init__(self) -> None:
-    #         super().__init__()
-
-    #         self.l0=torch.nn.Linear(model.modules[0].in_features,model.modules[0].out_features)
-    #         self.l0.weight=torch.nn.Parameter(torch.Tensor(np.transpose(model.modules[0].weight.numpy())))
-    #         self.l0.bias=torch.nn.Parameter(torch.Tensor(model.modules[0].bias.numpy())) 
-
-    #         self.relu=torch.nn.ReLU()
-
-    #         self.l1=torch.nn.Linear(model.modules[2].in_features,model.modules[2].out_features)
-    #         self.l1.weight= torch.nn.Parameter(torch.Tensor(np.transpose(model.modules[2].weight.numpy()))) 
-    #         self.l1.bias= torch.nn.Parameter(torch.Tensor(model.modules[2].bias.numpy())) 
-
-            
-    #     def forward(self,x):
-    #         # print(f'l0.weight: {torch.transpose(self.l0.weight,0,1)}')
-    #         # print(f'l0.bias: {self.l0.bias}')
-            
-    #         x=self.l0(x)
-            
-    #         #print(f'after l0: {x}')
-    #         x=self.relu(x)
-            
-    #         #print(f'after relu: {x}')
-
-            
-    #         x=self.l1(x)
-    #         # print(f'after l1: {x.shape}')
-    #         # print(f'after l1: {x}')
-    #         # print(f'l1.bias: {self.l1.bias.shape}')
-    #         return x
-    # model=Model()
-    # loss_func=torch.nn.CrossEntropyLoss()
-    # opt=torch.optim.SGD(model.parameters(),lr=0.1)
-
-    # for _ in range(epochs):
-    #     print('---------------------goood------------------------')
-    #     for i, (X0, y0) in enumerate(zip(np.array_split(X, m//batch), np.array_split(y, m//batch))):
-    #         opt.zero_grad()
-    #         X0, y0 = torch.Tensor(X0), torch.LongTensor(y0)
-    #         out = model(X0)
-    #         loss = loss_func(out, y0,)
-    #         print(f'loss: {loss}')
-    #         loss.backward()
-    #         print(f'l1 bias grad: {model.l1.bias.grad}')
-    #         # print(f'l1 bias grad: {torch.sum(model.l1.bias.grad)}')
-    #         print(f'l1 weight grad: {torch.transpose(model.l1.weight.grad,0,1)}')
-    #         print(f'l0 bias grad: {model.l0.bias.grad}')
-    #         print(f'l0 weight grad: {torch.transpose(model.l0.weight.grad,0,1)}')
-            
-    #         # Opt should not change gradients.
-    #         # grad_before = model.parameters()[0].grad.detach().cached_data
-    #         # print(f'grad before: {grad_before}')
-    #         opt.step()
-    #         # grad_after = model.parameters()[0].grad.detach().cached_data
-    #         # np.testing.assert_allclose(grad_before, grad_after, rtol=1e-5, atol=1e-5, \
-    #         #                            err_msg="Optim should not modify gradients in place")
-    #         if i==1:
-    #             break
-    # return loss.cpu().detach().numpy()
-    
-
     loss_func = nn.SoftmaxLoss()
-    
     opt = optimizer(model.parameters(), **kwargs)
 
     for _ in range(epochs):
-        print('---------------------bad------------------------')
         for i, (X0, y0) in enumerate(zip(np.array_split(X, m//batch), np.array_split(y, m//batch))):
             opt.reset_grad()
             X0, y0 = ndl.Tensor(X0, dtype="float32"), ndl.Tensor(y0)
             out = model(X0)
             loss = loss_func(out, y0)
-            # print(f'l0 weight: {model.modules[0].weight}')
-            # print(f'l0 bias: {model.modules[0].bias}')
-            print(f'loss: {loss}')
             loss.backward()
-            print(f'l1 bias grad: {model.modules[2].bias.grad.numpy()}')
-            # print(f'l1 bias grad: {np.sum(model.modules[2].bias.grad.numpy())}')
-            print(f'l1 weight grad: {model.modules[2].weight.grad.numpy()}')
-            print(f'l0 bias grad: {model.modules[0].bias.grad.numpy()}')
-            print(f'l0 weight grad: {model.modules[0].weight.grad.numpy()}')
             # Opt should not change gradients.
             grad_before = model.parameters()[0].grad.detach().cached_data
-            print(f'grad before: {grad_before.shape}')
             opt.step()
             grad_after = model.parameters()[0].grad.detach().cached_data
-            print(f'grad after: {grad_after.shape}')
-
             np.testing.assert_allclose(grad_before, grad_after, rtol=1e-5, atol=1e-5, \
                                        err_msg="Optim should not modify gradients in place")
-            if i==1:
-                break
-            
 
 
     return np.array(loss.cached_data)
@@ -1035,7 +956,7 @@ def submit_nn_flatten():
 
 
 def test_optim_sgd_vanilla_1():
-    np.testing.assert_allclose(learn_model_1d(64, 16, lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)), ndl.optim.SGD, lr=0.1, momentum=0.0),
+    np.testing.assert_allclose(learn_model_1d(64, 16, lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)), ndl.optim.SGD, lr=0.01, momentum=0.0),
         np.array(3.207009), rtol=1e-5, atol=1e-5)
 
 def test_optim_sgd_momentum_1():

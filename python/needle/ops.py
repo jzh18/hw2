@@ -267,7 +267,7 @@ class BroadcastTo(TensorOp):
             else:
                 broad_axes.append(final_index-i)
 
-        grad = out_grad.sum(axes=tuple(broad_axes)).reshape(input_shape)
+        grad = out_grad.sum(axes=tuple(broad_axes)).reshape(node.inputs[0].shape)
         #print(f'broadcast_to grad: {grad}')
 
         return grad
