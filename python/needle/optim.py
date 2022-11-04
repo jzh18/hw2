@@ -24,9 +24,20 @@ class SGD(Optimizer):
         self.weight_decay = weight_decay
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
+        for p in self.params:
+            if p.grad is None:
+                continue
+            if p not in self.u:
+                self.u[p] = p.grad.data+p.data*self.weight_decay
+
+            g = p.grad.data+p.data*self.weight_decay
+            self.u[p] = self.momentum*self.u[p] + \
+                (1-self.momentum)*g
+
+            p.data = p.data-self.lr*self.u[p]
+
+        # END YOUR SOLUTION
 
 
 class Adam(Optimizer):
@@ -51,6 +62,6 @@ class Adam(Optimizer):
         self.v = {}
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
         raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION

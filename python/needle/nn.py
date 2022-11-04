@@ -86,11 +86,11 @@ class Linear(Module):
         self.out_features = out_features
 
         # BEGIN YOUR SOLUTION
-        self.weight = init.kaiming_uniform(
-            fan_in=in_features, fan_out=out_features, requires_grad=True)
+        self.weight = Parameter(init.kaiming_uniform(
+            fan_in=in_features, fan_out=out_features, device=device, dtype=dtype, requires_grad=True))
         if bias == True:
-            self.bias = init.kaiming_uniform(
-                fan_in=out_features, fan_out=1, requires_grad=True).reshape((1, out_features))
+            self.bias = Parameter(init.kaiming_uniform(
+                fan_in=out_features, fan_out=1, device=device, dtype=dtype, requires_grad=True).reshape((1, out_features)))
         # END YOUR SOLUTION
 
     def forward(self, X: Tensor) -> Tensor:
@@ -102,6 +102,10 @@ class Linear(Module):
 
         broadcast_size = [i for i in x_shape]
         broadcast_size[-1] = self.out_features
+
+        print(f'ddddddd  bias shape: {self.bias.shape}')
+        print(f'ddddddd  broadcast_size shape: {broadcast_size}')
+
         b = ops.broadcast_to(self.bias, shape=tuple(broadcast_size))
         return a+b
         # END YOUR SOLUTION
@@ -133,8 +137,9 @@ class Sequential(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
-        for m in self.modules:
+        for i, m in enumerate(self.modules):
             x = m(x)
+            #print(f'x{i}: {x}')
         return x
         # END YOUR SOLUTION
 
@@ -142,16 +147,18 @@ class Sequential(Module):
 class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         # BEGIN YOUR SOLUTION
+
         num_classes = logits.shape[1]
         onehot = init.one_hot(num_classes, y)
 
-        # might be overflow
-        z_y = ops.multiply(onehot, ops.exp(logits))
-        exps_up = ops.log(ops.summation(z_y, axes=(1)))
+        z_y = ops.multiply(onehot, logits)
+        exps_up = ops.summation(z_y, axes=(1))
 
         exps_down = ops.logsumexp(logits, axes=(1,))
+        res = ops.summation(
+            exps_down-exps_up) / Tensor(logits.shape[0], dtype="float32")
 
-        return ops.summation(exps_down-exps_up)/logits.shape[0]
+        return res
         # END YOUR SOLUTION
 
 # https://www.pinecone.io/learn/batch-layer-normalization/
@@ -164,8 +171,10 @@ class BatchNorm1d(Module):
         self.eps = eps
         self.momentum = momentum
         # BEGIN YOUR SOLUTION
-        self.weight = init.ones(dim)
-        self.bias = init.zeros(dim)
+        self.weight = Parameter(
+            init.ones(dim, device=device, dtype=dtype, requires_grad=True))
+        self.bias = Parameter(init.zeros(
+            dim, device=device, dtype=dtype, requires_grad=True))
         self.running_mean = init.zeros(dim)
         self.running_var = init.ones(dim)
         # END YOUR SOLUTION
@@ -175,16 +184,19 @@ class BatchNorm1d(Module):
         # BEGIN YOUR SOLUTION
         batch_size, in_features = x.shape
 
-        new_running_mean = ops.summation(x, axes=(0,))/batch_size
-        self.running_mean = (1-self.momentum)*self.running_mean + \
-            self.momentum*new_running_mean
+        new_running_mean = ops.summation(
+            x, axes=(0,))/Tensor(batch_size, dtype="float32")
+        if self.training:
+            self.running_mean = (1-self.momentum)*self.running_mean + \
+                self.momentum*new_running_mean
         mean = new_running_mean.reshape((1, in_features))
         broadcast_mean = ops.broadcast_to(mean, (batch_size, in_features))
 
         new_running_var = (ops.summation(ops.power_scalar(
             x-broadcast_mean, 2), axes=(0,))/batch_size)
-        self.running_var = (1-self.momentum)*self.running_var + \
-            self.momentum*new_running_var
+        if self.training:
+            self.running_var = (1-self.momentum)*self.running_var + \
+                self.momentum*new_running_var
         var = new_running_var.reshape((1, in_features))
         broadcast_var = ops.broadcast_to(var, (batch_size, in_features))
 
@@ -205,8 +217,10 @@ class LayerNorm1d(Module):
         self.dim = dim
         self.eps = eps
         # BEGIN YOUR SOLUTION
-        self.weight = init.ones(dim)
-        self.bias = init.zeros(dim)
+        self.weight = Parameter(
+            init.ones(dim, device=device, dtype=dtype, requires_grad=True))
+        self.bias = Parameter(init.zeros(
+            dim, device=device, dtype=dtype, requires_grad=True))
         # END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:

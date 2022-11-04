@@ -75,6 +75,7 @@ class EWiseAdd(TensorOp):
         return a + b
 
     def gradient(self, out_grad: Tensor, node: Tensor):
+        #print(f'EWiseAdd: {out_grad}')
         return out_grad, out_grad
 
 
@@ -103,6 +104,7 @@ class EWiseMul(TensorOp):
 
     def gradient(self, out_grad: Tensor, node: Tensor):
         lhs, rhs = node.inputs
+        #print(f'multiply grad: {out_grad * rhs},{out_grad * lhs}')
         return out_grad * rhs, out_grad * lhs
 
 
@@ -158,8 +160,8 @@ class EWiseDiv(TensorOp):
         # BEGIN YOUR SOLUTION
         left, right = node.inputs
 
-        tmp1 = Tensor(1) / right
-        tmp2 = Tensor(-1)*left/(right*right)
+        tmp1 = Tensor(1, dtype="float32") / right
+        tmp2 = Tensor(-1, dtype="float32")*left/(right*right)
 
         return out_grad*tmp1, out_grad*tmp2
         # END YOUR SOLUTION
@@ -180,7 +182,9 @@ class DivScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        return out_grad*Tensor(1)/self.scalar
+        res = out_grad*Tensor(1)/self.scalar
+        #print(f'div scalar: {res}')
+        return res
         # END YOUR SOLUTION
 
 
@@ -240,25 +244,31 @@ class BroadcastTo(TensorOp):
         self.shape = shape
 
     def compute(self, a):
-        return array_api.broadcast_to(a, self.shape)
+        print(f'before broadcast: {a.shape}')
+        res = array_api.broadcast_to(a, self.shape)
+        print(f'after broadcast: {a.shape}')
+        return res
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
+        #print(f'broadcast_to outgrad: {out_grad}')
 
-        broadcast_shape = self.shape
-        input_shape = node.inputs[0].shape
+        broadcast_shape = list(self.shape)
+        broadcast_shape.reverse()
+        input_shape = list(node.inputs[0].shape)
+        input_shape.reverse()
 
-        broad_axes = [i for i in range(len(broadcast_shape))]
-        visited = [False]*len(broadcast_shape)
+        broad_axes = []
+        final_index = len(broadcast_shape)-1
+        for i, v in enumerate(broadcast_shape):
+            if i < len(input_shape):
+                if input_shape[i] == 1 and v > 1:
+                    broad_axes.append(final_index-i)
+            else:
+                broad_axes.append(final_index-i)
 
-        for i in input_shape:
-            for j, v in enumerate(broadcast_shape):
-                if v == i and not visited[j]:
-                    visited[j] = True
-                    broad_axes.remove(j)
-                    break
-
-        grad = out_grad.sum(tuple(broad_axes)).reshape(input_shape)
+        grad = out_grad.sum(axes=tuple(broad_axes)).reshape(input_shape)
+        #print(f'broadcast_to grad: {grad}')
 
         return grad
 
@@ -290,6 +300,7 @@ class Summation(TensorOp):
                 for i in self.axes:
                     new_shape[i] = 1
         grad = out_grad.reshape(new_shape).broadcast_to(node.inputs[0].shape)
+        #print(f'summation grad: {grad}')
         # BEGIN YOUR SOLUTION
         return grad
         # END YOUR SOLUTION
@@ -329,7 +340,7 @@ class MatMul(TensorOp):
         if right_extend_len > 0:
             axes = list(range(right_extend_len))
             grad_right = grad_right.sum(tuple(axes))
-
+        #print(f'matmul grad: {grad_left},{grad_right}')
         return grad_left, grad_right
         # END YOUR SOLUTION
 
@@ -413,9 +424,7 @@ class LogSumExp(TensorOp):
 
     def compute(self, Z):
         # BEGIN YOUR SOLUTION
-
         max_z = array_api.max(Z, axis=self.axes)
-                
 
         if self.axes is not None:
             reshape_size = [1]*len(Z.shape)
@@ -427,7 +436,10 @@ class LogSumExp(TensorOp):
         else:
             new_z = Z-array_api.broadcast_to(max_z, Z.shape)
 
-        return array_api.log(array_api.sum(array_api.exp(new_z), axis=self.axes))+max_z
+        res = array_api.log(array_api.sum(
+            array_api.exp(new_z), axis=self.axes))+max_z
+
+        return res
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -435,7 +447,6 @@ class LogSumExp(TensorOp):
         data = node.inputs[0].realize_cached_data()
 
         max_z = array_api.max(data, axis=self.axes)
-        
 
         if self.axes is not None:
             reshape_size = [1]*len(data.shape)
@@ -446,7 +457,7 @@ class LogSumExp(TensorOp):
             max_z = array_api.broadcast_to(resize_max_z, data.shape)
 
         exps = array_api.exp(data-max_z)
-        
+
         exps_down = array_api.sum(exps, axis=self.axes)
         if self.axes is not None:
             reshape_size = [1]*len(data.shape)
@@ -460,7 +471,8 @@ class LogSumExp(TensorOp):
 
         res = Tensor(array_api.multiply(
             out_grad.realize_cached_data(), exps/exps_down))
-        
+
+        #print(f'logsumexp grad: {res}')
         return res
         # END YOUR SOLUTION
 

@@ -1,4 +1,5 @@
 """Core data structures."""
+import numpy as array_api
 import needle
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
@@ -11,7 +12,6 @@ TENSOR_COUNTER = 0
 
 # NOTE: we will numpy as the array_api
 # to backup our computations, this line will change in later homeworks
-import numpy as array_api
 
 NDArray = numpy.ndarray
 
@@ -42,12 +42,12 @@ class CPUDevice(Device):
         return numpy.ones(shape, dtype=dtype)
 
     def randn(self, *shape):
-        # note: numpy doesn't support types within standard random routines, and 
+        # note: numpy doesn't support types within standard random routines, and
         # .astype("float32") does work if we're generating a singleton
-        return numpy.random.randn(*shape) 
+        return numpy.random.randn(*shape)
 
     def rand(self, *shape):
-        # note: numpy doesn't support types within standard random routines, and 
+        # note: numpy doesn't support types within standard random routines, and
         # .astype("float32") does work if we're generating a singleton
         return numpy.random.rand(*shape)
 
@@ -205,7 +205,7 @@ class Value:
         return value
 
 
-### Not needed in HW1
+# Not needed in HW1
 class TensorTuple(Value):
     """Represent a tuple of tensors.
 
@@ -264,7 +264,8 @@ class Tensor(Value):
                 )
         else:
             device = device if device else cpu()
-            cached_data = Tensor._array_from_numpy(array, device=device, dtype=dtype)
+            cached_data = Tensor._array_from_numpy(
+                array, device=device, dtype=dtype)
 
         self._init(
             None,
@@ -336,7 +337,8 @@ class Tensor(Value):
         return data.device
 
     def backward(self, out_grad=None):
-        out_grad = out_grad if out_grad else init.ones(*self.shape, dtype=self.dtype, device=self.device)
+        out_grad = out_grad if out_grad else init.ones(
+            *self.shape, dtype=self.dtype, device=self.device)
         compute_gradient_of_variables(self, out_grad)
 
     def __repr__(self):
@@ -364,12 +366,12 @@ class Tensor(Value):
             return needle.ops.MulScalar(other)(self)
 
     def __pow__(self, other):
-        ### BEGIN YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
         if isinstance(other, Tensor):
             return needle.ops.PowerScalar(other.cached_data)(self)
         else:
             return needle.ops.PowerScalar(other)(self)
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
@@ -427,10 +429,10 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
     # BEGIN YOUR SOLUTION
     for i in reverse_topo_order:
+
         vi = sum_node_list(node_to_output_grads_list[i])
         i.grad = vi
-
-        if i. op is None:
+        if i.op is None:
             continue
 
         grads = i.op.gradient_as_tuple(vi, i)
