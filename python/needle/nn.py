@@ -103,8 +103,6 @@ class Linear(Module):
         broadcast_size = [i for i in x_shape]
         broadcast_size[-1] = self.out_features
 
-        print(f'ddddddd  bias shape: {self.bias.shape}')
-        print(f'ddddddd  broadcast_size shape: {broadcast_size}')
 
         b = ops.broadcast_to(self.bias, shape=tuple(broadcast_size))
         return a+b

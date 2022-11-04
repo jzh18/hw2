@@ -28,10 +28,10 @@ class SGD(Optimizer):
         for p in self.params:
             if p.grad is None:
                 continue
-            if p not in self.u:
-                self.u[p] = p.grad.data+p.data*self.weight_decay
-
             g = p.grad.data+p.data*self.weight_decay
+            if p not in self.u:
+                self.u[p] = 0
+
             self.u[p] = self.momentum*self.u[p] + \
                 (1-self.momentum)*g
 

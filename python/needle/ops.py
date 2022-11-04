@@ -244,9 +244,7 @@ class BroadcastTo(TensorOp):
         self.shape = shape
 
     def compute(self, a):
-        print(f'before broadcast: {a.shape}')
         res = array_api.broadcast_to(a, self.shape)
-        print(f'after broadcast: {a.shape}')
         return res
 
     def gradient(self, out_grad, node):
