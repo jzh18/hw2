@@ -188,6 +188,8 @@ class BatchNorm1d(Module):
             self.running_mean = (1-self.momentum)*self.running_mean + \
                 self.momentum*new_running_mean
         mean = new_running_mean.reshape((1, in_features))
+        if not self.training:
+            mean=self.running_mean
         broadcast_mean = ops.broadcast_to(mean, (batch_size, in_features))
 
         new_running_var = (ops.summation(ops.power_scalar(
@@ -196,6 +198,8 @@ class BatchNorm1d(Module):
             self.running_var = (1-self.momentum)*self.running_var + \
                 self.momentum*new_running_var
         var = new_running_var.reshape((1, in_features))
+        if not self.training:
+            var=self.running_var
         broadcast_var = ops.broadcast_to(var, (batch_size, in_features))
 
         new_x = ops.divide((x-broadcast_mean),
