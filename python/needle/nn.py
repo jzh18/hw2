@@ -185,8 +185,8 @@ class BatchNorm1d(Module):
         new_running_mean = ops.summation(
             x, axes=(0,))/Tensor(batch_size, dtype="float32")
         if self.training:
-            self.running_mean = (1-self.momentum)*self.running_mean + \
-                self.momentum*new_running_mean
+            self.running_mean.data =( (1-self.momentum)*self.running_mean + 
+                self.momentum*new_running_mean).data
         mean = new_running_mean.reshape((1, in_features))
         if not self.training:
             mean=self.running_mean
@@ -195,8 +195,8 @@ class BatchNorm1d(Module):
         new_running_var = (ops.summation(ops.power_scalar(
             x-broadcast_mean, 2), axes=(0,))/batch_size)
         if self.training:
-            self.running_var = (1-self.momentum)*self.running_var + \
-                self.momentum*new_running_var
+            self.running_var.data = ((1-self.momentum)*self.running_var + 
+                self.momentum*new_running_var).data
         var = new_running_var.reshape((1, in_features))
         if not self.training:
             var=self.running_var

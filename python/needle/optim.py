@@ -81,8 +81,6 @@ class Adam(Optimizer):
             v_hat = self.v[p]/(1-self.beta2**self.t)
 
             p.data = p.data-self.lr*u_hat/(v_hat**(0.5)+self.eps)
-
-
             #p.data = p.data-self.lr*self.m[p]/(self.v[p]**(0.5)+self.eps)
             
 
